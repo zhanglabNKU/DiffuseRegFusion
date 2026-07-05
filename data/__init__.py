@@ -20,7 +20,7 @@ def create_dataloader(dataset, dataset_opt, phase):
             'Dataloader [{:s}] is not found.'.format(phase))
 
 
-def create_dataset_ACDC(dataset_opt, finesize, phase):
+def create_dataset_2d(dataset_opt, finesize, phase):
     '''create dataset'''
     from data.my_dataset import Dataset2D as D
     dataset = D(dataroot=dataset_opt['dataroot'],
@@ -29,11 +29,12 @@ def create_dataset_ACDC(dataset_opt, finesize, phase):
                 )
     return dataset
 
-def create_dataset_ACDC_test(dataset_opt, finesize, phase):
+
+def create_dataset_2d_test(dataset_opt, finesize, phase):
     '''create dataset'''
     from data.my_dataset import Dataset2D_test as Dt
     dataset = Dt(dataroot=dataset_opt['dataroot'],
-                fineSize=finesize,
-                split=phase,
-                )
+                 fineSize=finesize,
+                 split=phase,
+                 )
     return dataset

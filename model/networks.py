@@ -83,39 +83,20 @@ def init_weights(net, init_type='kaiming', scale=1, std=0.02):
 
 # Generator
 def define_G(opt):
-    self_opt = opt['self']
     model_opt = opt['model']
     from .diffusion_3D import CFG_diffusion, swin_unetR
 
-    # if 'dual' in self_opt or 'vmdiff' in self_opt:
     if model_opt["type"] == "swin_unetR":
         print("with swin unetR")
         model_score = swin_unetR.SwinUNETR(
             **model_opt['swin_unetR'],
-        )  # 实例化一个SwinUNETR模型
+        )
     else:
         raise NotImplementedError(model_opt["type"])
 
     from .diffusion_3D import unet
     stn = unet.SpatialTransform(model_opt['diffusion']['image_size'])
 
-    # bootstrap = unet.RecursiveCascadeNetwork(
-    #     n_cascades=model_opt['bootstrap']['n_cas'],
-    #     im_size=model_opt['diffusion']['image_size'],
-    #     network=model_opt['bootstrap']['module'],
-    #     stn=stn)
-    # print("bootstrap loading checkpoing:", model_opt['bootstrap']['checkpoint'])
-    # import sys, torch
-    # print("Python路径:", sys.executable)
-    # print("PyTorch版本:", torch.__version__)
-    # print("CUDA可用:", torch.cuda.is_available())
-    # import os
-    # print("CUDA_VISIBLE_DEVICES:", os.environ.get('CUDA_VISIBLE_DEVICES'))
-
-    # params_dict = torch.load(model_opt['bootstrap']['checkpoint'])
-    # for i, submodel in enumerate(bootstrap.stems):  # stems是一个列表，包含了所有的stem模块
-    #     submodel.load_state_dict(params_dict["cascade {}".format(i)])
-    # bootstrap.eval()
     bootstrap = 1
 
     netG = CFG_diffusion.GaussianDiffusion(

@@ -1,14 +1,12 @@
 from torch.utils.data import Dataset
-import data.util_2D as Util
 import os
 import numpy as np
 import torch
 from PIL import Image
-import matplotlib.pyplot as plt
-from data.warp import ImageTransform_1, warp2D, Warper2d
 
 
 class Dataset2D(Dataset):
+
     def __init__(self, dataroot, fineSize, split='train'):
         """
         初始化2D数据集
@@ -81,47 +79,17 @@ class Dataset2D(Dataset):
         moving = ct_img.unsqueeze(0).unsqueeze(0)
         fixed = mri_img.unsqueeze(0).unsqueeze(0)
 
-        # 形变
-        _, flow = ImageTransform_1()(moving)
-        flow = flow.permute(0, 3, 1, 2) * 256
-        flow = flow.squeeze(0)
-
         moving = moving.squeeze(0)
         fixed = fixed.squeeze(0)
         ori_moving = moving
 
-        # 调整图像尺寸
-        # ct_img, mri_img = self._resize_images(ct_img, mri_img)
-        
-        # 数据增强和转换为张量，范围[0, 1]
-        # [fixed, moving] = Util.transform_augment([mri_img,ct_img],
-        #                                        split=self.split,
-        #                                        min_max=(0, 1))
-        
-        # 如果当前形状为 [1, height, width, 1]，需要调整为 [1, 1, height, width]
-        # print('00000', fixed.shape, moving.shape)
-        # if fixed.shape[-1] == 1:  # 检查最后一个维度是否为通道维度
-        #     fixed = fixed.permute(0, 3, 1, 2)  # 从 [B, H, W, C] 转换为 [B, C, H, W]
-        #     moving = moving.permute(0, 3, 1, 2)  # 从 [B, H, W, C] 转换为 [B, C, H, W]
-        #     ori_moving = moving
 
-        #     # 形变
-        #     _, flow = ImageTransform_1()(moving)
-        #     flow = flow.permute(0, 3, 1, 2) * 256
-        #     # moving = warp2D()(moving, flow)
+        fixedM = torch.tensor([0], dtype=torch.float32)
+        movingM = torch.tensor([1], dtype=torch.float32)
 
-        #     fixed = fixed.squeeze(0)  # 移除批量维度
-        #     moving = moving.squeeze(0)  # 移除批量维度
-        #     ori_moving = ori_moving.squeeze(0)  # 移除批量维度
-        #     # print('111111', flow.shape)
-        #     flow = flow.squeeze(0)  # 移除批量维度
-
-        # CT图像标签为0，MRI图像标签为1
-        fixedM = torch.tensor([0], dtype=torch.float32)  # CT图像的标签
-        movingM = torch.tensor([1], dtype=torch.float32)  # MRI图像的标签
         
-        # return {'M': moving, 'F': fixed, 'OM': ori_moving, 'MS': movingM, 'FS': fixedM, 'Index': index}
-        return {'M': moving, 'F': fixed, 'OM': ori_moving, 'MS': movingM, 'FS': fixedM, 'flow':flow, 'Index': index}
+        return {'M': moving, 'F': fixed, 'OM': ori_moving, 'MS': movingM, 'FS': fixedM, 'Index': index}
+
     
     def _normalize_image(self, img):
         """

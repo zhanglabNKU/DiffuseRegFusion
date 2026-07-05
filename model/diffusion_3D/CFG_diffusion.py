@@ -130,13 +130,7 @@ class GaussianDiffusion(nn.Module):
         self.loss_reg = loss.gradientLoss("l2").to(device)
         self.loss_ssim = loss.SSIM2D(kernel_size=9).to(device)
         self.loss_ccef = loss.pearson_correlation()
-        # 添加变形场损失
-        self.loss_identity = loss.IdentityTransformLoss(loss_type='l2').to(device)
-        self.loss_cycle = loss.CycleConsistencyLoss(loss_type='l2').to(device)
-        # 添加融合损失函数
         self.loss_fusion = loss.Fusion_loss().to(device)
-        # # 添加分类损失函数
-        # self.cls_loss_func = loss.ClassificationLoss().to(device)
 
     def set_new_noise_schedule(self, schedule_opt, device):
         to_torch = partial(torch.tensor, dtype=torch.float32, device=device)
@@ -297,65 +291,30 @@ class GaussianDiffusion(nn.Module):
         """
         param x_in: the condition and x0(not contained here)
         """
-        # print('形状为：', x_in["F"].shape)
         b, _, h, w = x_in["F"].shape
         device = x_in["F"].device
-        # max_size = torch.tensor(self.scaler, device=device).view(1, 3, 1, 1, 1)
         flow_mean = torch.tensor(self.mean, device=device).view(1, 2, 1, 1)
         flow_std = torch.tensor(self.std, device=device).view(1, 2, 1, 1)
         with torch.no_grad():
-            # with x0
-            # self.bootstrap.eval()
-            # flows, warps, _ = self.bootstrap(x_in["F"], x_in["M"])
-            # x_start = (flows[-1] - flow_mean) / flow_std
-            # without x0
             x_start = torch.randn((b, 2, h, w), device=device)
 
         t = torch.randint(0, self.num_timesteps, (b,), device=device).long()
         noise = default(noise, lambda: torch.randn_like(x_start))
         x_noisy_fw = self.q_sample(x_start.detach(), t, noise)
-        # x_noisy_fw = 0.0 * x_start + 1.0 * noise
-        # print('00000', x_in['M'].shape, x_in['F'].shape, x_in['OM'].shape)
 
         img_cat = torch.cat([x_in['M'], x_in['F']], dim=1)
-        # img_mean = img_cat.mean()
-        # img_std = img_cat.std()
-        # img_cat = (img_cat - img_mean) / img_std
         score, fusion_img = self.denoise_fn(torch.cat([img_cat, x_noisy_fw], dim=1), t)
-        # Loss diff
         diff_loss = F.mse_loss(score, noise, reduction="mean")
         flow_pred = self.predict_start_from_noise(x_noisy_fw, t, score)
         flow_pred = flow_pred * flow_std + flow_mean
         warpped = warp2D()(x_in['M'], flow_pred)
-        # warpped = self.stn(x_in['M'], flow_pred)
         sim_loss = self.loss_ssim(warpped, x_in['OM'])
         reg_loss = self.loss_reg(flow_pred)
-        # 添加变形场损失
-        flow_gt = x_in['flow']
-        identity_loss = self.loss_identity(flow_pred, flow_gt)
-        cycle_loss = self.loss_cycle(flow_pred, flow_gt)
-        flow_loss = 0.5 * identity_loss + 0.5 * cycle_loss
-
-        # 获取融合损失
-        # from model.diffusion_3D.saliency_weight import compute_fusion_weight
-        # parameter, vgg_extractor = compute_fusion_weight(
-        #     x_in['M'], x_in['F'],
-        #     device=device,
-        #     extractor=None,
-        #     c=1.0  # 可调参数
-        # )
         parameter = 1.0
-        fusion_img = (fusion_img-torch.min(fusion_img))/(torch.max(fusion_img)-torch.min(fusion_img))
+        fusion_img = (fusion_img - torch.min(fusion_img)) / (torch.max(fusion_img) - torch.min(fusion_img))
         fusion_loss = self.loss_fusion(warpped, x_in['F'], fusion_img, parameter, x_in['OM'])
 
-        # 获取分类损失
-        # label1 = x_in['MS']
-        # label2 = x_in['FS']
-        # assert label1 is not None and label2 is not None, '标签不能为空'
-        # cls_loss, transfer_loss = self.cls_loss_func(pre1, pre2, feature_pred1, feature_pred2, label1, label2)
-        # total_loss = 1.0 * diff_loss + 1.0 * sim_loss + 0.1 * reg_loss + 1.0 * fusion_loss
-        total_loss = fusion_loss
-        # print(diff_loss.item(), sim_loss.item(), reg_loss.item())
+        total_loss = diff_loss + sim_loss + 0.1 * reg_loss + fusion_loss
 
 
         return diff_loss, sim_loss, reg_loss, fusion_loss, total_loss

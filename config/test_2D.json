@@ -34,11 +34,7 @@
             "downsample": "merging",
             "use_v2": false
         },
-        "bootstrap": {
-            "n_cas": 3,
-            "module": "VTNlowRes",
-            "checkpoint": "./experiments/VTN_ACDC_train_250330_151208/checkpoint/E2000.pth"
-        },
+
         "beta_schedule": {
             "train": {
                 "schedule": "linear",
@@ -49,10 +45,15 @@
         },
         "diffusion": {
             "image_size": [256, 256],
+            "channels": 2,
+            "flow_scaler": [1, 1],
             "flow_mean": [0, 0],
             "flow_std": [1, 1],
             "conditional": true
-        }
+        },
+        "loss_lambda": 1,
+        "gamma": 1
+
     },
     "test": {
         "amp": false
