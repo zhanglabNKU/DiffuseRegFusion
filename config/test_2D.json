@@ -1,0 +1,60 @@
+{
+    "name": "swin_unetR",
+    "phase": "test",
+    "gpu_ids": [
+        0
+    ],
+    "path": {
+        "checkpoint": "checkpoint",
+        "resume_state": null,
+        "results": "results"
+    },
+    "datasets": {
+        "centered": true,
+        "test": {
+            "name": "2D",
+            "dataroot": "./datasets/CT-MRI/test",
+            "data_len": 3
+        }
+    },
+    "model": {
+        "netDim": 3,
+        "which_model_G": "ddpm",
+        "finetune_norm": false,
+        "type": "swin_unetR",
+        "swin_unetR": {
+            "img_size": [256, 256],
+            "in_channels": 2,
+            "out_channels": 2,
+            "depths": [2, 2, 2, 2],
+            "num_heads": [3, 6, 12, 24],
+            "window_size": [4, 4],
+            "feature_size": 120,
+            "spatial_dims": 2,
+            "downsample": "merging",
+            "use_v2": false
+        },
+        "bootstrap": {
+            "n_cas": 3,
+            "module": "VTNlowRes",
+            "checkpoint": "./experiments/VTN_ACDC_train_250330_151208/checkpoint/E2000.pth"
+        },
+        "beta_schedule": {
+            "train": {
+                "schedule": "linear",
+                "n_timestep": 2000,
+                "linear_start": 1e-6,
+                "linear_end": 1e-2
+            }
+        },
+        "diffusion": {
+            "image_size": [256, 256],
+            "flow_mean": [0, 0],
+            "flow_std": [1, 1],
+            "conditional": true
+        }
+    },
+    "test": {
+        "amp": false
+    }
+}
